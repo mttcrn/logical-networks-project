@@ -2,7 +2,6 @@ library IEEE;
     use IEEE.STD_LOGIC_1164.ALL;
     use IEEE.NUMERIC_STD.ALL;
 
-
 entity project_reti_logiche is
         Port (
         i_clk   : in std_logic;
@@ -33,13 +32,19 @@ architecture Behavioral of project_reti_logiche is
     signal o_select : std_logic_vector(0 to 1);
     
     
-begin
-    OL : process(i_rst, i_clk) --Reset e output
-    begin
-        if(i_rst = '1') then
-            s_curr <= RST;
-        elsif rising_edge(i_clk) then   
-            s_curr <= s_next;
+begin    
+
+    SL : process(i_rst, i_clk) --sync logic: update FSM status 
+        begin
+            if(i_rst = '1') then
+                s_curr <= RST;
+            elsif rising_edge(i_clk) then   
+                s_curr <= s_next;
+            end if;
+    end process;
+    
+    OE : process(o_done_next) --output entity
+        begin
             o_done <= o_done_next;
             if (o_done_next = '1') then
                 o_z0 <= o_z0_next;
@@ -52,51 +57,49 @@ begin
                 o_z2 <= "00000000";
                 o_z3 <= "00000000";
             end if;
-       end if;
-    end process OL;
+    end process;
     
-   TL : process(i_rst, i_clk, i_start, o_done_next)
+   TL : process(i_rst, i_start, o_done_next)
         begin 
-            if rising_edge(i_clk) then
-                        case s_curr is
-                            when RST => 
-                                if (i_rst = '1') then
-                                    s_next <= s_curr;
-                                elsif (i_rst = '0') then
-                                    s_next <= WAIT_START;
-                                end if;
-                            when WAIT_START =>
-                                if (i_start='0') then
-                                    s_next <= s_curr;
-                                elsif (i_start='1') then
-                                    s_next <= READ; 
-                                end if;
-                            when READ =>
-                                if(i_start='1') then
-                                    s_next <= s_curr;
-                                elsif(i_start='0') then
-                                    s_next <= ELAB; 
-                                end if;
-                            when ELAB =>
-                                if(o_done_next='0') then
-                                    s_next <= s_curr;
-                                elsif(o_done_next='1') then
-                                    s_next <= PRINT;
-                                end if;
-                             when PRINT =>
-                                s_next <= WAIT_START;
-                        end case;  
-            end if;   
+            case s_curr is
+                when RST => 
+                    if (i_rst = '1') then
+                        s_next <= RST;
+                    elsif (i_rst = '0') then
+                        s_next <= WAIT_START;
+                    end if;
+                when WAIT_START =>
+                    if (i_start='0') then
+                        s_next <= WAIT_START;
+                    elsif (i_start='1') then
+                        s_next <= READ; 
+                    end if;
+                when READ =>
+                    if(i_start='1') then
+                        s_next <= READ;
+                    elsif(i_start='0') then
+                        s_next <= ELAB; 
+                    end if;
+                when ELAB =>
+                    if(o_done_next='0') then
+                        s_next <= ELAB;
+                    elsif(o_done_next='1') then
+                        s_next <= PRINT;
+                    end if;
+                when PRINT =>
+                        s_next <= WAIT_START;
+                end case;  
         end process TL;
         
-  R : process(i_start, i_w, i_mem_data)
+  R : process(s_curr, i_start, i_w, i_mem_data)
     begin
         case s_curr is
             when RST =>
-                o_z0_next <= "00000000";
-                o_z1_next <= "00000000";
-                o_z2_next <= "00000000";
-                o_z3_next <= "00000000";
+                -- code reusability
+                o_z0_next <= (Others => '0'); 
+                o_z1_next <= (Others => '0');
+                o_z2_next <= (Others => '0');
+                o_z3_next <= (Others => '0');
                 o_done_next <= '0';
             when WAIT_START =>
                 if (i_start='1') then
@@ -104,28 +107,29 @@ begin
                 end if;
             when READ =>
                 if(i_start='1') then
-                    if(count<2) then
+                    if(count<o_select'LENGTH) then
                         o_select(count) <= i_w;
                     else
-                        o_addr(count) <= i_w;
+                        o_addr(count-o_select'LENGTH) <= i_w;
                     end if;  
                     count <= count + 1;
                 end if;
             when ELAB =>
                 if(o_done_next='0') then
-                    for i in 0 to 15 loop
-                        if(i<count+1) then
+                    --for i in 0 to 15 loop
+                      --  if(i<count+1) then
                             --o_mem_addr <= ((15-i) => o_addr(count-i));
-                            o_mem_addr(15-i)<=o_addr(count-i);
-                        end if;
-                    end loop;
-                    o_mem_addr <= (Others => '0');
+                        --    o_mem_addr(15-i)<=o_addr(count-i);
+                       -- end if;
+                    -- end loop;
+                    o_mem_addr <= (o_mem_addr'LENGTH-1  downto count+1 => '0') & o_addr(count downto 0);
                     o_mem_we <= '0';
                     o_mem_en <= '1';
                            --Modulo Memoria
                     o_done_next <= '1';              
                 end if;
             when PRINT =>
+                o_done_next <= '0';
                 case o_select is
                     when "00" =>
                         o_z0_next <= i_mem_data;
@@ -134,7 +138,8 @@ begin
                     when "10" =>
                         o_z2_next <= i_mem_data;
                     when "11" =>
-                        o_z3_next <= i_mem_data; when others =>
+                        o_z3_next <= i_mem_data; 
+                    when others =>
                 end case;
         end case;
     end process R;
