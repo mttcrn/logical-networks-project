@@ -34,7 +34,6 @@ architecture Behavioral of project_reti_logiche is
     
     
 begin
-
     OL : process(i_rst, i_clk) --Reset e output
     begin
         if(i_rst = '1') then
@@ -56,15 +55,49 @@ begin
        end if;
     end process OL;
     
-    R : process(i_start, i_w, i_mem_data)
+   TL : process(i_rst, i_clk, i_start, o_done_next)
+        begin 
+            if rising_edge(i_clk) then
+                        case s_curr is
+                            when RST => 
+                                if (i_rst = '1') then
+                                    s_next <= s_curr;
+                                elsif (i_rst = '0') then
+                                    s_next <= WAIT_START;
+                                end if;
+                            when WAIT_START =>
+                                if (i_start='0') then
+                                    s_next <= s_curr;
+                                elsif (i_start='1') then
+                                    s_next <= READ; 
+                                end if;
+                            when READ =>
+                                if(i_start='1') then
+                                    s_next <= s_curr;
+                                elsif(i_start='0') then
+                                    s_next <= ELAB; 
+                                end if;
+                            when ELAB =>
+                                if(o_done_next='0') then
+                                    s_next <= s_curr;
+                                elsif(o_done_next='1') then
+                                    s_next <= PRINT;
+                                end if;
+                             when PRINT =>
+                                s_next <= WAIT_START;
+                        end case;  
+            end if;   
+        end process TL;
+        
+  R : process(i_start, i_w, i_mem_data)
     begin
         case s_curr is
             when RST =>
-                o_z0 <= "00000000";
-                o_z1 <= "00000000";
-                o_z2 <= "00000000";
-                o_z3 <= "00000000";
-                o_done <= '0';
+                o_z0_next <= "00000000";
+                o_z1_next <= "00000000";
+                o_z2_next <= "00000000";
+                o_z3_next <= "00000000";
+                o_done_next <= '0';
             when WAIT_START =>
                 if (i_start='1') then
                     count <= 0;
@@ -101,43 +134,9 @@ begin
                     when "10" =>
                         o_z2_next <= i_mem_data;
                     when "11" =>
-                        o_z3_next <= i_mem_data;
+                        o_z3_next <= i_mem_data; when others =>
                 end case;
         end case;
     end process R;
-    
-    TL : process(i_rst, i_clk, i_start, o_done_next)
-        begin 
-            if rising_edge(i_clk) then
-                        case s_curr is
-                            when RST => 
-                                if (i_rst = '1') then
-                                    s_next <= s_curr;
-                                elsif (i_rst = '0') then
-                                    s_next <= WAIT_START;
-                                end if;
-                            when WAIT_START =>
-                                if (i_start='0') then
-                                    s_next <= s_curr;
-                                elsif (i_start='1') then
-                                    s_next <= READ; 
-                                end if;
-                            when READ =>
-                                if(i_start='1') then
-                                    s_next <= s_curr;
-                                elsif(i_start='0') then
-                                    s_next <= ELAB; 
-                                end if;
-                            when ELAB =>
-                                if(o_done_next='0') then
-                                    s_next <= s_curr;
-                                elsif(o_done_next='1') then
-                                    s_next <= PRINT;
-                                end if;
-                             when PRINT =>
-                                s_next <= WAIT_START;
-                        end case;  
-            end if;   
-        end process TL;
 
 end Behavioral;
