@@ -24,13 +24,12 @@ end project_reti_logiche;
 
 architecture Behavioral of project_reti_logiche is
     type state_type is (RST, WAIT_START, READ, ELAB, WAIT_PRINT, PRINT);
-    signal s_curr, s_next: state_type;
-    signal o_z0_next, o_z1_next, o_z2_next, o_z3_next : std_logic_vector(7 downto 0);
-    signal o_done_next : std_logic;
-    signal o_addr : std_logic_vector(15 downto 0); 
+    signal s_curr, s_next: state_type := WAIT_START;
+    signal o_z0_next, o_z1_next, o_z2_next, o_z3_next, i_dato : std_logic_vector(7 downto 0) := (Others => '0');
+    signal o_done_next : std_logic := '0';
+    signal o_addr : std_logic_vector(15 downto 0);
     signal o_select : std_logic_vector(0 to 1);
-    signal count : integer range 0 to 15;
-    signal c_clk : integer range 0 to 10;
+    signal count : integer range 1 to 15 := 1;
     
 begin    
 
@@ -59,7 +58,7 @@ begin
             end if;
     end process;
     
-   TL : process(i_rst, i_start, i_mem_data, i_clk)
+   TL : process(i_rst, i_start, i_mem_data, i_clk) --transition logic
         begin 
             case s_curr is
                 when RST => 
@@ -81,15 +80,12 @@ begin
                         s_next <= ELAB; 
                     end if;
                 when ELAB =>
---                    if (i_mem_data'EVENT) then
-                        s_next <= WAIT_PRINT;
---                    else 
---                        s_next <= ELAB;
---                    end if;
+                    s_next <= WAIT_PRINT;
                 when WAIT_PRINT =>
                     s_next <= PRINT; 
                 when PRINT =>
                     s_next <= WAIT_START;
+                when others =>
                 end case;  
         end process;
         
@@ -105,14 +101,16 @@ begin
                 o_done_next <= '0';
                 o_mem_we <= '0';
                 o_mem_en <= '0';
+                i_dato <= (Others => '0');
             when WAIT_START =>
                         count <= 1;
                         o_mem_we <= '0';
                         o_mem_en <= '0';
                         o_done_next <= '0';
-                        o_addr <= (Others => '0');
+                        i_dato <= (Others => '0');
                     if (rising_edge(i_clk) and i_start = '1') then
                         o_select(0) <= i_w;  
+                        o_addr <= (Others => '0');
                     end if;
             when READ =>
                 if(rising_edge(i_clk) and i_start = '1') then
@@ -134,18 +132,29 @@ begin
                     o_mem_en <= '1';
                     o_mem_we <= '0';
             when WAIT_PRINT =>
+                o_mem_en <= '0';
+                i_dato <= i_mem_data;
             when PRINT =>
                 o_done_next <= '1';
-                o_mem_en <= '0';
                 if (o_select = "00") then
-                    o_z0_next <= i_mem_data;
+                    o_z0_next <= i_dato;
+                    o_done_next <= '1';
                 elsif (o_select = "01") then
-                    o_z1_next <= i_mem_data;
+                    o_z1_next <= i_dato;
+                    o_done_next <= '1';
                 elsif (o_select = "10") then
-                    o_z2_next <= i_mem_data;
+                    o_z2_next <= i_dato;
+                    o_done_next <= '1';
                 elsif (o_select = "11") then
-                    o_z3_next <= i_mem_data;
+                    o_z3_next <= i_dato;
+                    o_done_next <= '1';
+                else
+                    o_z0_next <= (Others => '0'); 
+                    o_z1_next <= (Others => '0');
+                    o_z2_next <= (Others => '0');
+                    o_z3_next <= (Others => '0');
                 end if;
+            when others =>
             end case;
     end process;
     
