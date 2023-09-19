@@ -1,8 +1,8 @@
-# Progetto Reti Logiche 2022/2023
+# Logical Networks Project 2022/2023
 
-Lo scopo del progetto è l’implementazione di un componente hardware in VHDL che, dati in
-ingesso un selettore e un indirizzo di memoria, mostri sul canale d’uscita selezionato il contenuto
-della memoria, senza cancellare i risultati ottenuti in precedenza.
+The aim of the project is the implementation of a hardware component in VHDL which, given in
+input a selector and a memory address, shows the content on the selected output channel
+of memory, without erasing previously obtained results.
 
 ## 
 * [Andrea Grassi](https://github.com/Fozyhh)
