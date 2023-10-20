@@ -65,10 +65,10 @@ begin
                     o_z2<=(others=>'0');
                     o_z3<=(others=>'0');
                     if(i_start='1') then
-                        --memorizzazione del primo bit di s_select (più significativo)
+                        --memorizzazione del primo bit di s_select (piÃ¹ significativo)
                         s_select(1)<=i_w;
                         flag<='0';
-                        --inizializzazione di s_addr che garantisce l'estensione con '0' sui bit più significativi
+                        --inizializzazione di s_addr che garantisce l'estensione con '0' sui bit piÃ¹ significativi
                         s_addr<=(others=>'0');
                         s_curr<=READ;
                     else 
